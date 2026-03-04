@@ -1,0 +1,94 @@
+{
+    "name": "orbital-guard-desktop",
+    "version": "1.0.0",
+    "description": "Orbital Guard AI - Desktop Application",
+    "main": "electron/main.js",
+    "author": "Orbital Guard AI Team",
+    "license": "MIT",
+    "scripts": {
+        "start": "electron .",
+        "dev": "cross-env ELECTRON_START_URL=http://localhost:3000 electron .",
+        "build:web": "cd ../frontend && npm run build",
+        "prebuild": "npm run build:web",
+        "build": "electron-builder",
+        "build:win": "electron-builder --win",
+        "build:mac": "electron-builder --mac",
+        "build:linux": "electron-builder --linux",
+        "pack": "electron-builder --dir",
+        "postinstall": "electron-builder install-app-deps"
+    },
+    "dependencies": {
+        "electron-updater": "^6.1.7"
+    },
+    "devDependencies": {
+        "electron": "^28.1.0",
+        "electron-builder": "^24.9.1",
+        "cross-env": "^7.0.3"
+    },
+    "build": {
+        "appId": "com.orbitalguard.ai",
+        "productName": "Orbital Guard AI",
+        "directories": {
+            "output": "build",
+            "buildResources": "assets"
+        },
+        "files": [
+            "electron/**/*",
+            "assets/**/*",
+            "../frontend/dist/**/*"
+        ],
+        "win": {
+            "target": [
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64",
+                        "ia32"
+                    ]
+                },
+                {
+                    "target": "portable",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ],
+            "icon": "assets/icon.ico",
+            "artifactName": "${productName}-${version}-${arch}.${ext}"
+        },
+        "mac": {
+            "target": [
+                "dmg",
+                "zip"
+            ],
+            "icon": "assets/icon.icns",
+            "category": "public.app-category.education",
+            "hardenedRuntime": true,
+            "gatekeeperAssess": false,
+            "entitlements": "build/entitlements.mac.plist",
+            "entitlementsInherit": "build/entitlements.mac.plist"
+        },
+        "linux": {
+            "target": [
+                "AppImage",
+                "deb",
+                "rpm"
+            ],
+            "icon": "assets/icon.png",
+            "category": "Science",
+            "maintainer": "Orbital Guard AI Team"
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "shortcutName": "Orbital Guard AI"
+        },
+        "publish": {
+            "provider": "github",
+            "owner": "your-username",
+            "repo": "orbital-guard-ai"
+        }
+    }
+}

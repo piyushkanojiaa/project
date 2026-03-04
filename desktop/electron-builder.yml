@@ -1,0 +1,69 @@
+appId: com.orbitalguard.ai
+productName: Orbital Guard AI
+
+directories:
+  output: build
+  buildResources: assets
+
+files:
+  - electron/**/*
+  - assets/**/*
+  - ../frontend/dist/**/*
+  - package.json
+
+# Windows Configuration
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - ia32
+    - target: portable
+      arch:
+        - x64
+  icon: assets/icon.png
+  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  publisherName: Orbital Guard AI
+
+# macOS Configuration
+mac:
+  target:
+    - dmg
+    - zip
+  icon: assets/icon.png
+  category: public.app-category.education
+  hardenedRuntime: true
+  gatekeeperAssess: false
+
+# Linux Configuration
+linux:
+  target:
+    - AppImage
+    - deb
+    - rpm
+  icon: assets/icon.png
+  category: Science
+  maintainer: Orbital Guard AI Team <support@orbitalguard.ai>
+  vendor: Orbital Guard AI
+  synopsis: Space Debris Monitoring and Collision Avoidance
+
+# NSIS Installer (Windows)
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Orbital Guard AI
+  installerIcon: assets/icon.png
+  uninstallerIcon: assets/icon.png
+  installerHeader: assets/icon.png
+  installerSidebar: assets/icon.png
+  deleteAppDataOnUninstall: false
+
+# Publishing Configuration
+publish:
+  provider: github
+  owner: your-username
+  repo: orbital-guard-ai
+  releaseType: release

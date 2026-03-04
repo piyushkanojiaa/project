@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Debris Collision Avoidance AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/konva@8/konva.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+        :root {
+            --space-blue: #0a0e17;
+            --space-purple: #1a0b2e;
+            --neon-blue: #00d4ff;
+            --neon-purple: #9d4edd;
+            --danger-red: #ff375f;
+            --warning-yellow: #ffb74d;
+            --safe-green: #4ade80;
+            --satellite-blue: #3b82f6;
+            --debris-gray: #94a3b8;
+            --iss-orange: #f97316;
+            --hubble-gold: #fbbf24;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--space-blue) 0%, var(--space-purple) 100%);
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 600;
+        }
+
+        .orbital-path {
+            stroke-dasharray: 5, 5;
+            animation: orbitRotate 60s linear infinite;
+        }
+
+        @keyframes orbitRotate {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .pulse-warning {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 183, 77, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 183, 77, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 183, 77, 0);
+            }
+        }
+
+        .pulse-danger {
+            animation: pulse-danger 1.5s infinite;
+        }
+
+        @keyframes pulse-danger {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 55, 95, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 55, 95, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 55, 95, 0);
+            }
+        }
+
+        .glow-effect {
+            filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.7));
+        }
+
+        .fps-counter {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+        }
+
+        .collision-probability-bar {
+            height: 6px;
+            border-radius: 3px;
+            transition: width 0.5s ease-in-out;
+        }
+
+        .gradient-border {
+            border: 2px solid transparent;
+            background: linear-gradient(var(--space-blue), var(--space-blue)) padding-box,
+                linear-gradient(135deg, var(--neon-blue), var(--neon-purple)) border-box;
+        }
+
+        .slide-in {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .satellite-tooltip {
+            position: absolute;
+            background: rgba(10, 14, 23, 0.95);
+            border: 1px solid var(--neon-blue);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 12px;
+            z-index: 100;
+            pointer-events: none;
+            transform: translate(-50%, -100%);
+            margin-top: -10px;
+            min-width: 200px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .canvas-container {
+            touch-action: none;
+        }
+
+        @media (max-width: 768px) {
+            .responsive-layout {
+                flex-direction: column;
+            }
+
+            .canvas-wrapper {
+                height: 50vh;
+            }
+
+            .sidebar {
+                max-height: 50vh;
+                overflow-y: auto;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <div class="container mx-auto p-4" id="app">
+        <!-- Header -->
+        <header class="mb-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                <div>
+                    <h1
+                        class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                        <i class="fas fa-satellite mr-3"></i>Space Debris Collision Avoidance AI
+                    </h1>
+                    <p class="text-gray-400 mt-2">Real-time orbital monitoring and collision prediction system</p>
+                </div>
+                <div class="mt-4 md:mt-0 flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+                        <span class="text-sm">System: <span class="font-bold text-green-400">ACTIVE</span></span>
+                    </div>
+                    <div class="fps-counter bg-gray-900 px-3 py-1 rounded-lg">
+                        <span id="fps-counter">60</span> FPS
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="gradient-border rounded-xl p-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-semibold">Orbital Objects</h3>
+                            <p class="text-2xl font-bold" id="object-count">18</p>
+                        </div>
+                        <i class="fas fa-satellite text-3xl text-blue-400"></i>
+                    </div>
+                    <div class="mt-2 text-sm text-gray-400">Active satellites and debris being tracked</div>
+                </div>
+
+                <div class="gradient-border rounded-xl p-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-semibold">Collision Risk</h3>
+                            <p class="text-2xl font-bold"><span id="collision-risk">2</span> <span class="text-lg">/
+                                    day</span></p>
+                        </div>
+                        <i class="fas fa-exclamation-triangle text-3xl text-yellow-500"></i>
+                    </div>
+                    <div class="mt-2 text-sm text-gray-400">Predicted close approaches today</div>
+                </div>
+
+                <div class="gradient-border rounded-xl p-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-semibold">Processing Speed</h3>
+                            <p class="text-2xl font-bold" id="processing-speed">412k</p>
+                        </div>
+                        <i class="fas fa-bolt text-3xl text-purple-500"></i>
+                    </div>
+                    <div class="mt-2 text-sm text-gray-400">Object pairs analyzed per second</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="responsive-layout flex flex-col md:flex-row gap-6">
+            <!-- Left Panel: Visualization Canvas -->
+            <div class="canvas-wrapper md:w-2/3 h-[65vh] rounded-xl overflow-hidden gradient-border">
+                <div class="relative h-full">
+                    <div id="canvas-container" class="canvas-container w-full h-full"></div>
+
+                    <!-- Canvas Controls -->
+                    <div class="absolute top-4 left-4 flex flex-col space-y-2">
+                        <button id="zoom-in"
+                            class="bg-gray-900 hover:bg-gray-800 w-10 h-10 rounded-full flex items-center justify-center">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button id="zoom-out"
+                            class="bg-gray-900 hover:bg-gray-800 w-10 h-10 rounded-full flex items-center justify-center">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <button id="reset-view"
+                            class="bg-gray-900 hover:bg-gray-800 w-10 h-10 rounded-full flex items-center justify-center">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="absolute bottom-4 left-4 bg-gray-900/90 backdrop-blur-sm rounded-lg p-4">
+                        <h4 class="font-bold mb-2">Orbital Objects Legend</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-orange-500 mr-2"></div>
+                                <span>ISS & Active Satellites</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-gray-400 mr-2"></div>
+                                <span>Debris & Inactive Objects</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                                <span>High Risk Collision Path</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                                <span>Medium Risk Collision Path</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Object Info -->
+                    <div id="selected-info"
+                        class="absolute top-4 right-4 bg-gray-900/90 backdrop-blur-sm rounded-lg p-4 max-w-xs hidden">
+                        <h4 class="font-bold mb-2 flex justify-between">
+                            <span id="selected-name">ISS (Zarya)</span>
+                            <button id="close-info" class="text-gray-400 hover:text-white">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Type:</span>
+                                <span id="selected-type" class="font-medium">Space Station</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Orbit:</span>
+                                <span id="selected-orbit" class="font-medium">LEO (408 km)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Velocity:</span>
+                                <span id="selected-velocity" class="font-medium">7.66 km/s</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Inclination:</span>
+                                <span id="selected-inclination" class="font-medium">51.64°</span>
+                            </div>
+                            <div class="mt-3 pt-3 border-t border-gray-700">
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-gray-400">Collision Risk:</span>
+                                    <span id="selected-risk" class="font-medium text-yellow-400">MEDIUM</span>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded-full h-2">
+                                    <div id="selected-risk-bar"
+                                        class="collision-probability-bar bg-yellow-500 rounded-full" style="width: 45%">
+                                    </div>
+                                </div>
+                                <div class="text-xs text-gray-400 mt-1" id="selected-risk-desc">Potential approach in
+                                    3.2 hours</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Controls and Alerts -->
+            <div class="sidebar md:w-1/3 flex flex-col space-y-6">
+                <!-- Control Panel -->
+                <div class="gradient-border rounded-xl p-5">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-sliders-h mr-3 text-blue-400"></i> Control Panel
+                    </h2>
+
+                    <div class="space-y-4">
+                        <div class="flex space-x-4">
+                            <button id="start-stop"
+                                class="flex-1 bg-gradient-to-r from-green-600 to-emerald-700 hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-pause mr-2"></i> <span>Pause Simulation</span>
+                            </button>
+                            <button id="add-satellite"
+                                class="flex-1 bg-gradient-to-r from-blue-600 to-purple-700 hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-plus mr-2"></i> Add Object
+                            </button>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-medium">Time Scale</label>
+                                <span id="time-scale-value" class="font-bold">1x</span>
+                            </div>
+                            <input id="time-scale" type="range" min="0" max="4" value="1" step="1"
+                                class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                <span>Paused</span>
+                                <span>Real-time</span>
+                                <span>10x</span>
+                                <span>100x</span>
+                                <span>1000x</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="font-medium">Visualization Detail</label>
+                                <span id="detail-level" class="font-bold">High</span>
+                            </div>
+                            <input id="detail-slider" type="range" min="1" max="3" value="3" step="1"
+                                class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                <span>Low</span>
+                                <span>Medium</span>
+                                <span>High</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-700">
+                            <h3 class="font-bold mb-3">AI System Status</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">TLE Parsing</span>
+                                    <span class="text-green-400 font-medium">Active</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Orbital Propagation</span>
+                                    <span class="text-green-400 font-medium">Active</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Collision Screening</span>
+                                    <span class="text-green-400 font-medium">412k pairs/sec</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Maneuver Optimization</span>
+                                    <span class="text-green-400 font-medium">Standby</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Collision Alerts Panel -->
+                <div class="gradient-border rounded-xl p-5 flex-1 overflow-hidden flex flex-col">
+                    <h2 class="text-xl font-bold mb-4 flex items-center">
+                        <i class="fas fa-exclamation-circle mr-3 text-red-400"></i> Collision Alerts
+                    </h2>
+
+                    <div class="flex-1 overflow-y-auto pr-2" id="alerts-container">
+                        <!-- Alerts will be dynamically added here -->
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-700 mt-4">
+                        <div class="flex justify-between text-sm">
+                            <div>
+                                <span class="text-gray-400">Last Update:</span>
+                                <span id="last-update" class="font-medium ml-2">15:42:23 UTC</span>
+                            </div>
+                            <button id="refresh-data" class="text-blue-400 hover:text-blue-300">
+                                <i class="fas fa-sync-alt mr-1"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-8 pt-6 border-t border-gray-800 text-sm text-gray-400">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <p>Space-Track.org API Integration | AI-Powered Collision Prediction | Real-time 2D Orbital
+                        Visualization</p>
+                    <p class="mt-1">Demo includes: ISS, Hubble, GPS Satellites + 15 Debris Objects</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="hover:text-blue-400">
+                        <i class="fas fa-code-branch mr-1"></i> API Docs
+                    </a>
+                    <a href="#" class="hover:text-blue-400">
+                        <i class="fas fa-database mr-1"></i> Data Sources
+                    </a>
+                    <a href="#" class="hover:text-blue-400">
+                        <i class="fas fa-chart-line mr-1"></i> Analytics
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/konva/8.4.2/konva.min.js"></script>
+    <script type="text/javascript">
+        // Initialize global variables
+        let stage, layer;
+        let satellites = [];
+        let debrisObjects = [];
+        let collisionLines = [];
+        let selectedSatellite = null;
+        let animationId = null;
+        let isPaused = false;
+        let timeScale = 1;
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+        let fps = 60;
+        let alertCounter = 1;
+
+        // Initialize the visualization when page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            initVisualization();
+            setupEventListeners();
+            generateInitialData();
+            startAnimation();
+            populateAlerts();
+
+            // Start FPS counter
+            setInterval(updateFPS, 1000);
+        });
+
+        function initVisualization() {
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Create stage and layer
+            stage = new Konva.Stage({
+                container: 'canvas-container',
+                width: width,
+                height: height
+            });
+
+            layer = new Konva.Layer();
+            stage.add(layer);
+
+            // Draw Earth at center
+            const earth = new Konva.Circle({
+                x: width / 2,
+                y: height / 2,
+                radius: 40,
+                fillRadialGradientStartPoint: { x: 0, y: 0 },
+                fillRadialGradientStartRadius: 0,
+                fillRadialGradientEndPoint: { x: 0, y: 0 },
+                fillRadialGradientEndRadius: 40,
+                fillRadialGradientColorStops: [0, '#1d4ed8', 0.5, '#3b82f6', 1, '#60a5fa'],
+                stroke: '#0ea5e9',
+                strokeWidth: 2,
+                shadowColor: '#3b82f6',
+                shadowBlur: 15,
+                shadowOpacity: 0.7
+            });
+
+            layer.add(earth);
+
+            // Draw orbit rings
+            const orbitCount = 5;
+            for (let i = 1; i <= orbitCount; i++) {
+                const orbitRadius = 60 + i * 60;
+                const orbit = new Konva.Circle({
+                    x: width / 2,
+                    y: height / 2,
+                    radius: orbitRadius,
+                    stroke: 'rgba(100, 116, 139, 0.3)',
+                    strokeWidth: 1,
+                    dash: [5, 5]
+                });
+
+                layer.add(orbit);
+            }
+
+            layer.draw();
+
+            // Handle window resize
+            window.addEventListener('resize', function () {
+                const newWidth = container.clientWidth;
+                const newHeight = container.clientHeight;
+
+                stage.width(newWidth);
+                stage.height(newHeight);
+
+                // Reposition Earth
+                earth.x(newWidth / 2);
+                earth.y(newHeight / 2);
+
+                // Reposition orbits
+                layer.children.forEach((child, index) => {
+                    if (child.className === 'Circle' && child !== earth) {
+                        child.x(newWidth / 2);
+                        child.y(newWidth / 2);
+                    }
+                });
+
+                layer.batchDraw();
+            });
+        }
+
+        function generateInitialData() {
+            const width = stage.width();
+            const height = stage.height();
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // Create ISS
+            createSatellite({
+                id: 'iss',
+                name: 'ISS (Zarya)',
+                type: 'space-station',
+                color: '#f97316',
+                radius: 100,
+                speed: 0.02,
+                angle: Math.random() * Math.PI * 2,
+                size: 12,
+                orbitLevel: 2,
+                risk: 'medium',
+                riskValue: 0.45
+            });
+
+            // Create Hubble
+            createSatellite({
+                id: 'hubble',
+                name: 'Hubble Telescope',
+                type: 'telescope',
+                color: '#fbbf24',
+                radius: 120,
+                speed: 0.018,
+                angle: Math.random() * Math.PI * 2,
+                size: 10,
+                orbitLevel: 2,
+                risk: 'low',
+                riskValue: 0.15
+            });
+
+            // Create GPS satellites (3 of them)
+            for (let i = 1; i <= 3; i++) {
+                createSatellite({
+                    id: `gps-${i}`,
+                    name: `GPS SVN ${i}`,
+                    type: 'navigation',
+                    color: '#3b82f6',
+                    radius: 180,
+                    speed: 0.015 + Math.random() * 0.005,
+                    angle: Math.random() * Math.PI * 2,
+                    size: 8,
+                    orbitLevel: 3,
+                    risk: 'low',
+                    riskValue: 0.1 + Math.random() * 0.1
+                });
+            }
+
+            // Create debris objects (15 of them)
+            for (let i = 1; i <= 15; i++) {
+                const orbitLevel = Math.floor(Math.random() * 3) + 1;
+                const riskLevel = Math.random();
+                let risk = 'low';
+                let riskValue = riskLevel * 0.3;
+
+                if (riskLevel > 0.7) {
+                    risk = 'high';
+                    riskValue = 0.7 + Math.random() * 0.3;
+                } else if (riskLevel > 0.4) {
+                    risk = 'medium';
+                    riskValue = 0.4 + Math.random() * 0.3;
+                }
+
+                createDebris({
+                    id: `debris-${i}`,
+                    name: `Debris Object ${i}`,
+                    radius: 60 + orbitLevel * 60 + Math.random() * 30,
+                    speed: 0.01 + Math.random() * 0.02,
+                    angle: Math.random() * Math.PI * 2,
+                    size: 4 + Math.random() * 4,
+                    orbitLevel: orbitLevel,
+                    risk: risk,
+                    riskValue: riskValue
+                });
+            }
+
+            // Create collision risk indicators
+            createCollisionIndicators();
+        }
+
+        function createSatellite(config) {
+            const width = stage.width();
+            const height = stage.height();
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            const satellite = new Konva.Group({
+                x: centerX + Math.cos(config.angle) * config.radius,
+                y: centerY + Math.sin(config.angle) * config.radius,
+                id: config.id,
+                draggable: false
+            });
+
+            // Main satellite body
+            const body = new Konva.Circle({
+                radius: config.size,
+                fill: config.color,
+                stroke: '#ffffff',
+                strokeWidth: 1,
+                shadowColor: config.color,
+                shadowBlur: 10,
+                shadowOpacity: 0.8
+            });
+
+            // Solar panels
+            const solarPanel1 = new Konva.Rect({
+                x: -config.size * 2,
+                y: -config.size / 2,
+                width: config.size * 1.5,
+                height: config.size,
+                fill: config.type === 'space-station' ? '#f59e0b' : '#d1d5db',
+                cornerRadius: 2
+            });
+
+            const solarPanel2 = new Konva.Rect({
+                x: config.size * 0.5,
+                y: -config.size / 2,
+                width: config.size * 1.5,
+                height: config.size,
+                fill: config.type === 'space-station' ? '#f59e0b' : '#d1d5db',
+                cornerRadius: 2
+            });
+
+            satellite.add(solarPanel1, solarPanel2, body);
+
+            // Add tooltip on hover
+            satellite.on('mouseenter', function () {
+                showTooltip(config, satellite.x(), satellite.y());
+            });
+
+            satellite.on('mouseleave', function () {
+                hideTooltip();
+            });
+
+            satellite.on('click', function () {
+                selectSatellite(config, satellite);
+            });
+
+            // Store config data
+            satellite.config = config;
+            satellite.currentAngle = config.angle;
+
+            layer.add(satellite);
+            satellites.push(satellite);
+
+            return satellite;
+        }
+
+        function createDebris(config) {
+            const width = stage.width();
+            const height = stage.height();
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            const debris = new Konva.Circle({
+                x: centerX + Math.cos(config.angle) * config.radius,
+                y: centerY + Math.sin(config.angle) * config.radius,
+                radius: config.size,
+                fill: config.risk === 'high' ? '#ef4444' : '#94a3b8',
+                stroke: config.risk === 'high' ? '#fca5a5' : '#cbd5e1',
+                strokeWidth: 1,
+                shadowColor: config.risk === 'high' ? '#ef4444' : '#94a3b8',
+                shadowBlur: config.risk === 'high' ? 15 : 5,
+                shadowOpacity: 0.7,
+                id: config.id
+            });
+
+            // Add tooltip on hover
+            debris.on('mouseenter', function () {
+                showTooltip(config, debris.x(), debris.y());
+            });
+
+            debris.on('mouseleave', function () {
+                hideTooltip();
+            });
+
+            debris.on('click', function () {
+                selectSatellite(config, debris);
+            });
+
+            // Store config data
+            debris.config = config;
+            debris.currentAngle = config.angle;
+
+            layer.add(debris);
+            debrisObjects.push(debris);
+
+            return debris;
+        }
+
+        function createCollisionIndicators() {
+            // Create a few collision risk indicators between objects
+            for (let i = 0; i < 3; i++) {
+                const sourceIdx = Math.floor(Math.random() * satellites.length);
+                const targetIdx = Math.floor(Math.random() * debrisObjects.length);
+
+                const source = satellites[sourceIdx];
+                const target = debrisObjects[targetIdx];
+
+                if (source && target) {
+                    // Create a line showing collision path
+                    const line = new Konva.Line({
+                        points: [source.x(), source.y(), target.x(), target.y()],
+                        stroke: i === 0 ? '#ef4444' : '#f59e0b',
+                        strokeWidth: 1.5,
+                        dash: [5, 5],
+                        opacity: 0.7,
+                        id: `collision-line-${i}`
+                    });
+
+                    layer.add(line);
+                    collisionLines.push(line);
+                }
+            }
+        }
+
+        function showTooltip(config, x, y) {
+            // Remove existing tooltip
+            hideTooltip();
+
+            const tooltip = document.createElement('div');
+            tooltip.className = 'satellite-tooltip';
+            tooltip.id = 'satellite-tooltip';
+            tooltip.innerHTML = `
+                <div class="font-bold">${config.name}</div>
+                <div class="mt-1 text-gray-300">Type: ${config.type || 'Space Debris'}</div>
+                <div>Orbit: ${config.orbitLevel ? 'Level ' + config.orbitLevel : 'Unknown'}</div>
+                <div>Risk: <span class="${config.risk === 'high' ? 'text-red-400' : config.risk === 'medium' ? 'text-yellow-400' : 'text-green-400'}">${config.risk ? config.risk.toUpperCase() : 'LOW'}</span></div>
+                ${config.riskValue ? `<div>Probability: ${(config.riskValue * 100).toFixed(1)}%</div>` : ''}
+            `;
+
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+
+            document.getElementById('canvas-container').appendChild(tooltip);
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('satellite-tooltip');
+            if (tooltip) {
+                tooltip.remove();
+            }
+        }
+
+        function selectSatellite(config, shape) {
+            selectedSatellite = config;
+
+            // Update selected info panel
+            document.getElementById('selected-name').textContent = config.name;
+            document.getElementById('selected-type').textContent = config.type ? config.type.replace('-', ' ').toUpperCase() : 'DEBRIS';
+            document.getElementById('selected-orbit').textContent = `Level ${config.orbitLevel} (${Math.round(config.radius)} km)`;
+            document.getElementById('selected-velocity').textContent = `${(7.66 * (1 + Math.random() * 0.2 - 0.1)).toFixed(2)} km/s`;
+            document.getElementById('selected-inclination').textContent = `${(51.64 + Math.random() * 20 - 10).toFixed(2)}°`;
+
+            const riskElement = document.getElementById('selected-risk');
+            const riskBar = document.getElementById('selected-risk-bar');
+            const riskDesc = document.getElementById('selected-risk-desc');
+
+            if (config.risk === 'high') {
+                riskElement.textContent = 'HIGH';
+                riskElement.className = 'font-medium text-red-400';
+                riskBar.className = 'collision-probability-bar bg-red-500 rounded-full';
+                riskBar.style.width = `${config.riskValue * 100}%`;
+                riskDesc.textContent = `Imminent approach in ${(Math.random() * 2).toFixed(1)} hours`;
+            } else if (config.risk === 'medium') {
+                riskElement.textContent = 'MEDIUM';
+                riskElement.className = 'font-medium text-yellow-400';
+                riskBar.className = 'collision-probability-bar bg-yellow-500 rounded-full';
+                riskBar.style.width = `${config.riskValue * 100}%`;
+                riskDesc.textContent = `Potential approach in ${(3 + Math.random() * 5).toFixed(1)} hours`;
+            } else {
+                riskElement.textContent = 'LOW';
+                riskElement.className = 'font-medium text-green-400';
+                riskBar.className = 'collision-probability-bar bg-green-500 rounded-full';
+                riskBar.style.width = `${config.riskValue * 100}%`;
+                riskDesc.textContent = 'No immediate threat detected';
+            }
+
+            // Show the info panel
+            document.getElementById('selected-info').classList.remove('hidden');
+
+            // Highlight the selected satellite
+            if (shape.className === 'Circle') {
+                shape.strokeWidth(3);
+                shape.stroke('#ffffff');
+            } else if (shape.className === 'Group') {
+                shape.children.forEach(child => {
+                    if (child.className === 'Circle') {
+                        child.strokeWidth(3);
+                        child.stroke('#ffffff');
+                    }
+                });
+            }
+
+            layer.batchDraw();
+        }
+
+        function startAnimation() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+
+            function animate() {
+                if (!isPaused) {
+                    updateSatellites();
+                    updateCollisionLines();
+                }
+
+                animationId = requestAnimationFrame(animate);
+
+                // Calculate FPS
+                frameCount++;
+                const now = performance.now();
+                if (now >= lastFrameTime + 1000) {
+                    fps = Math.round((frameCount * 1000) / (now - lastFrameTime));
+                    frameCount = 0;
+                    lastFrameTime = now;
+                }
+            }
+
+            animate();
+        }
+
+        function updateSatellites() {
+            const width = stage.width();
+            const height = stage.height();
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // Update satellites
+            satellites.forEach(satellite => {
+                if (satellite.config) {
+                    satellite.currentAngle += satellite.config.speed * timeScale * 0.01;
+
+                    satellite.x(centerX + Math.cos(satellite.currentAngle) * satellite.config.radius);
+                    satellite.y(centerY + Math.sin(satellite.currentAngle) * satellite.config.radius);
+
+                    // Rotate solar panels
+                    if (satellite.children.length > 2) {
+                        satellite.children[0].rotate(0.5 * timeScale);
+                        satellite.children[1].rotate(0.5 * timeScale);
+                    }
+                }
+            });
+
+            // Update debris
+            debrisObjects.forEach(debris => {
+                if (debris.config) {
+                    debris.currentAngle += debris.config.speed * timeScale * 0.01;
+
+                    debris.x(centerX + Math.cos(debris.currentAngle) * debris.config.radius);
+                    debris.y(centerY + Math.sin(debris.currentAngle) * debris.config.radius);
+                }
+            });
+
+            layer.batchDraw();
+        }
+
+        function updateCollisionLines() {
+            // Update collision lines to follow moving objects
+            collisionLines.forEach((line, index) => {
+                if (satellites[index] && debrisObjects[index]) {
+                    line.points([satellites[index].x(), satellites[index].y(),
+                    debrisObjects[index].x(), debrisObjects[index].y()]);
+                }
+            });
+        }
+
+        function updateFPS() {
+            document.getElementById('fps-counter').textContent = fps;
+
+            // Update processing speed with slight variation
+            const speed = 400000 + Math.floor(Math.random() * 20000);
+            document.getElementById('processing-speed').textContent = (speed / 1000).toFixed(0) + 'k';
+        }
+
+        function populateAlerts() {
+            const alertsContainer = document.getElementById('alerts-container');
+            alertsContainer.innerHTML = '';
+
+            const alerts = [
+                { id: 1, severity: 'high', time: '15:42:23 UTC', objects: 'ISS vs DEBRIS-7', probability: '4.7%', tca: '2.3 hours', status: 'active' },
+                { id: 2, severity: 'medium', time: '15:38:12 UTC', objects: 'GPS SVN 2 vs DEBRIS-12', probability: '1.2%', tca: '5.7 hours', status: 'active' },
+                { id: 3, severity: 'low', time: '15:12:05 UTC', objects: 'Hubble vs DEBRIS-3', probability: '0.3%', tca: '12.1 hours', status: 'monitoring' },
+                { id: 4, severity: 'high', time: '14:55:41 UTC', objects: 'DEBRIS-5 vs DEBRIS-9', probability: '8.1%', tca: '1.1 hours', status: 'active' },
+                { id: 5, severity: 'medium', time: '14:23:17 UTC', objects: 'GPS SVN 1 vs DEBRIS-14', probability: '2.4%', tca: '8.9 hours', status: 'monitoring' },
+                { id: 6, severity: 'low', time: '13:45:32 UTC', objects: 'ISS vs DEBRIS-2', probability: '0.8%', tca: '24.5 hours', status: 'resolved' }
+            ];
+
+            alerts.forEach(alert => {
+                const alertElement = document.createElement('div');
+                alertElement.className = `alert-item mb-4 p-4 rounded-lg border-l-4 ${alert.severity === 'high' ? 'bg-red-900/30 border-red-500' : alert.severity === 'medium' ? 'bg-yellow-900/30 border-yellow-500' : 'bg-blue-900/30 border-blue-500'}`;
+                alertElement.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="flex items-center">
+                                <span class="font-bold">${alert.objects}</span>
+                                <span class="ml-2 px-2 py-1 text-xs rounded ${alert.severity === 'high' ? 'bg-red-500' : alert.severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'}">${alert.severity.toUpperCase()}</span>
+                            </div>
+                            <div class="mt-2 text-sm text-gray-300">
+                                <div class="flex justify-between">
+                                    <span>Probability:</span>
+                                    <span class="font-medium">${alert.probability}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>TCA:</span>
+                                    <span class="font-medium">${alert.tca}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>Status:</span>
+                                    <span class="font-medium ${alert.status === 'active' ? 'text-red-300' : alert.status === 'monitoring' ? 'text-yellow-300' : 'text-green-300'}">${alert.status.toUpperCase()}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-gray-400">${alert.time}</div>
+                            <button class="mt-2 text-blue-400 hover:text-blue-300 text-sm">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                    ${alert.severity === 'high' ? '<div class="mt-3 text-xs text-red-300"><i class="fas fa-exclamation-triangle mr-1"></i> Evasive maneuver recommended</div>' : ''}
+                `;
+
+                alertsContainer.appendChild(alertElement);
+            });
+        }
+
+        function setupEventListeners() {
+            // Start/Stop button
+            document.getElementById('start-stop').addEventListener('click', function () {
+                isPaused = !isPaused;
+                const icon = this.querySelector('i');
+                const text = this.querySelector('span');
+
+                if (isPaused) {
+                    icon.className = 'fas fa-play mr-2';
+                    text.textContent = 'Resume Simulation';
+                    this.className = 'flex-1 bg-gradient-to-r from-blue-600 to-purple-700 hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center';
+                } else {
+                    icon.className = 'fas fa-pause mr-2';
+                    text.textContent = 'Pause Simulation';
+                    this.className = 'flex-1 bg-gradient-to-r from-green-600 to-emerald-700 hover:opacity-90 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center';
+                }
+            });
+
+            // Add satellite button
+            document.getElementById('add-satellite').addEventListener('click', function () {
+                const newId = `custom-${Date.now()}`;
+                const orbitLevel = Math.floor(Math.random() * 3) + 1;
+
+                createSatellite({
+                    id: newId,
+                    name: `Satellite ${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
+                    type: 'communication',
+                    color: '#8b5cf6',
+                    radius: 60 + orbitLevel * 60,
+                    speed: 0.015 + Math.random() * 0.01,
+                    angle: Math.random() * Math.PI * 2,
+                    size: 8,
+                    orbitLevel: orbitLevel,
+                    risk: 'low',
+                    riskValue: 0.1 + Math.random() * 0.2
+                });
+
+                // Update object count
+                const countElement = document.getElementById('object-count');
+                countElement.textContent = parseInt(countElement.textContent) + 1;
+
+                // Show notification
+                showNotification('New satellite added to simulation');
+            });
+
+            // Time scale slider
+            document.getElementById('time-scale').addEventListener('input', function () {
+                const value = parseInt(this.value);
+                timeScale = Math.pow(10, value - 1);
+
+                const scaleText = document.getElementById('time-scale-value');
+                if (value === 0) {
+                    scaleText.textContent = 'Paused';
+                    isPaused = true;
+                } else {
+                    scaleText.textContent = `${timeScale}x`;
+                    isPaused = false;
+                }
+            });
+
+            // Detail level slider
+            document.getElementById('detail-slider').addEventListener('input', function () {
+                const value = parseInt(this.value);
+                const detailText = document.getElementById('detail-level');
+
+                if (value === 1) {
+                    detailText.textContent = 'Low';
+                } else if (value === 2) {
+                    detailText.textContent = 'Medium';
+                } else {
+                    detailText.textContent = 'High';
+                }
+            });
+
+            // Close selected info
+            document.getElementById('close-info').addEventListener('click', function () {
+                document.getElementById('selected-info').classList.add('hidden');
+                selectedSatellite = null;
+            });
+
+            // Refresh data button
+            document.getElementById('refresh-data').addEventListener('click', function () {
+                const now = new Date();
+                const timeString = now.toUTCString().split(' ')[4];
+                document.getElementById('last-update').textContent = timeString;
+
+                const riskCount = 1 + Math.floor(Math.random() * 4);
+                document.getElementById('collision-risk').textContent = riskCount;
+
+                showNotification('Data refreshed from Space-Track.org API');
+
+                if (Math.random() > 0.7) {
+                    addNewAlert();
+                }
+            });
+
+            // Canvas controls
+            document.getElementById('zoom-in').addEventListener('click', function () {
+                stage.scale({ x: stage.scaleX() * 1.2, y: stage.scaleY() * 1.2 });
+                layer.batchDraw();
+            });
+
+            document.getElementById('zoom-out').addEventListener('click', function () {
+                stage.scale({ x: stage.scaleX() * 0.8, y: stage.scaleY() * 0.8 });
+                layer.batchDraw();
+            });
+
+            document.getElementById('reset-view').addEventListener('click', function () {
+                stage.scale({ x: 1, y: 1 });
+                stage.position({ x: 0, y: 0 });
+                layer.batchDraw();
+            });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-gray-900 text-white px-6 py-4 rounded-lg shadow-lg border-l-4 border-blue-500 z-50 slide-in';
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-info-circle text-blue-400 mr-3"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.remove('slide-in');
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.3s';
+
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        function addNewAlert() {
+            alertCounter++;
+            const severity = Math.random() > 0.7 ? 'high' : Math.random() > 0.5 ? 'medium' : 'low';
+            const objects = ['ISS', 'Hubble', 'GPS SVN 1', 'GPS SVN 2', 'GPS SVN 3'][Math.floor(Math.random() * 5)] +
+                ' vs DEBRIS-' + Math.floor(Math.random() * 15 + 1);
+            const probability = (Math.random() * 10).toFixed(1) + '%';
+            const tca = (Math.random() * 24).toFixed(1) + ' hours';
+            const now = new Date();
+            const timeString = now.toUTCString().split(' ')[4];
+
+            const alertsContainer = document.getElementById('alerts-container');
+            const alertElement = document.createElement('div');
+            alertElement.className = `alert-item mb-4 p-4 rounded-lg border-l-4 ${severity === 'high' ? 'bg-red-900/30 border-red-500 pulse-danger' : severity === 'medium' ? 'bg-yellow-900/30 border-yellow-500 pulse-warning' : 'bg-blue-900/30 border-blue-500'}`;
+            alertElement.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="flex items-center">
+                            <span class="font-bold">${objects}</span>
+                            <span class="ml-2 px-2 py-1 text-xs rounded ${severity === 'high' ? 'bg-red-500' : severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'}">${severity.toUpperCase()}</span>
+                            <span class="ml-2 text-xs text-gray-400">NEW</span>
+                        </div>
+                        <div class="mt-2 text-sm text-gray-300">
+                            <div class="flex justify-between">
+                                <span>Probability:</span>
+                                <span class="font-medium">${probability}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>TCA:</span>
+                                <span class="font-medium">${tca}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Status:</span>
+                                <span class="font-medium text-yellow-300">MONITORING</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-400">${timeString}</div>
+                        <button class="mt-2 text-blue-400 hover:text-blue-300 text-sm">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+                </div>
+                ${severity === 'high' ? '<div class="mt-3 text-xs text-red-300"><i class="fas fa-exclamation-triangle mr-1"></i> Evasive maneuver recommended</div>' : ''}
+            `;
+
+            alertsContainer.insertBefore(alertElement, alertsContainer.firstChild);
+
+            const riskCount = document.getElementById('collision-risk');
+            riskCount.textContent = parseInt(riskCount.textContent) + 1;
+
+            showNotification(`New ${severity} risk collision detected: ${objects}`);
+        }
+    </script>
+</body>
+
+</html>

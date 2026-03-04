@@ -1,0 +1,48 @@
+# Vercel ignore file
+# Exclude backend and unnecessary files from deployment
+
+# Backend
+../backend/
+backend/
+
+# Python
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Environment
+.env
+.env.local
+.env.development
+
+# Dependencies
+node_modules/
+
+# Build
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+.git/
+.gitignore
+README.md

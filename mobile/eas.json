@@ -1,0 +1,53 @@
+/**
+ * EAS Build Configuration
+ * 
+ * Configuration for building iOS and Android apps with EAS
+ */
+{
+    "cli": {
+        "version": ">= 5.0.0"
+    },
+    "build": {
+        "development": {
+            "developmentClient": true,
+            "distribution": "internal",
+            "ios": {
+                "simulator": true
+            },
+            "android": {
+                "buildType": "apk"
+            }
+        },
+        "preview": {
+            "distribution": "internal",
+            "ios": {
+                "simulator": false,
+                "buildConfiguration": "Release"
+            },
+            "android": {
+                "buildType": "apk"
+            }
+        },
+        "production": {
+            "ios": {
+                "buildConfiguration": "Release"
+            },
+            "android": {
+                "buildType": "aab"
+            }
+        }
+    },
+    "submit": {
+        "production": {
+            "ios": {
+                "appleId": "your-apple-id@example.com",
+                "ascAppId": "your-app-store-connect-app-id",
+                "appleTeamId": "your-team-id"
+            },
+            "android": {
+                "serviceAccountKeyPath": "./playstore-service-account.json",
+                "track": "production"
+            }
+        }
+    }
+}

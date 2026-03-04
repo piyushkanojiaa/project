@@ -1,0 +1,115 @@
+# Mission Phase Configuration
+# Defines policies for each satellite mission phase
+
+phases:
+  LAUNCH:
+    description: "T-0 to orbit insertion"
+    priority: "System survival"
+    constraint: "Minimal actions to avoid destabilization"
+    max_actions: 0
+    allowed_actions:
+      - log_only
+    power_change_limit: 0.0
+    attitude_change_allowed: false
+    maneuver_allowed: false
+    payload_operations_allowed: false
+    require_ground_approval: true
+    auto_recovery_enabled: false
+
+  DEPLOYMENT:
+    description: "Orbit insertion to systems checkout"
+    priority: "Safe deployment of components"
+    constraint: "Limited responses, avoid disruption"
+    max_actions: 3
+    allowed_actions:
+      - log_only
+      - alert
+      - stabilize
+    power_change_limit: 10.0
+    attitude_change_allowed: true
+    maneuver_allowed: false
+    payload_operations_allowed: false
+    require_ground_approval: true
+    auto_recovery_enabled: true
+
+  NOMINAL_OPS:
+    description: "Normal operational phase"
+    priority: "Performance optimization"
+    constraint: "None (full autonomy)"
+    max_actions: -1  # unlimited
+    allowed_actions:
+      - log_only
+      - alert
+      - recover
+      - optimize
+      - full_recovery
+    power_change_limit: 50.0
+    attitude_change_allowed: true
+    maneuver_allowed: true
+    payload_operations_allowed: true
+    require_ground_approval: false
+    auto_recovery_enabled: true
+
+  PAYLOAD_OPS:
+    description: "Active science/mission operations"
+    priority: "Science data collection"
+    constraint: "Careful with power/attitude changes"
+    max_actions: 5
+    allowed_actions:
+      - log_only
+      - alert
+      - payload_safe
+    power_change_limit: 20.0
+    attitude_change_allowed: false  # Don't disrupt payload pointing
+    maneuver_allowed: false
+    payload_operations_allowed: true
+    require_ground_approval: true
+    auto_recovery_enabled: true
+
+  SAFE_MODE:
+    description: "Critical failure or emergency"
+    priority: "System survival only"
+    constraint: "Minimal subsystem activation"
+    max_actions: 1
+    allowed_actions:
+      - log_only
+      - survival_only
+    power_change_limit: 5.0
+    attitude_change_allowed: false
+    maneuver_allowed: false
+    payload_operations_allowed: false
+    require_ground_approval: true
+    auto_recovery_enabled: true
+
+# Phase Transition Rules
+transitions:
+  # Automatic transitions
+  auto_transitions:
+    - from: LAUNCH
+      to: DEPLOYMENT
+      condition: "orbit_established"
+      delay_minutes: 30
+    
+    - from: DEPLOYMENT
+      to: NOMINAL_OPS
+      condition: "systems_nominal"
+      delay_minutes: 180  # 3 hours
+  
+  # Manual transitions (operator controlled)
+  manual_only:
+    - to: SAFE_MODE
+      reason: "Emergency only"
+    
+    - to: PAYLOAD_OPS
+      reason: "Science operations"
+
+# Emergency Override Rules
+emergency_override:
+  allowed_phases:
+    - DEPLOYMENT
+    - NOMINAL_OPS
+    - PAYLOAD_OPS
+  
+  max_duration_hours: 2
+  require_justification: true
+  notify_operators: true
