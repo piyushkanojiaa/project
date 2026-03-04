@@ -3,7 +3,7 @@
 # ============================================================
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-pydantic==2.5.0
+pydantic>=2.10.0
 python-multipart==0.0.6
 
 # ============================================================
@@ -18,16 +18,16 @@ graphql-core==3.2.3
 sqlalchemy==2.0.23
 asyncpg==0.29.0
 alembic==1.12.1
-psycopg2-binary==2.9.9
+psycopg2-binary>=2.9.9
 
 # ============================================================
 # ML & AI
 # ============================================================
 # Traditional ML
-torch==2.1.0
-scikit-learn==1.3.2
+torch>=2.1.0
+scikit-learn>=1.6.0
 xgboost==2.0.2
-numpy==1.26.2
+numpy>=2.1.0
 pandas==2.1.3
 
 # AI Reasoning (NEW)
@@ -41,7 +41,7 @@ qdrant-client==1.7.0
 # ============================================================
 # Real-Time & Streaming (NEW)
 # ============================================================
-pathway==0.7.0
+pathway>=0.29.0
 kafka-python==2.0.2
 
 # ============================================================
@@ -52,8 +52,8 @@ skyfield==1.46  # SGP4/SDP4 propagation, high-precision ephemerides
 # ============================================================
 # Reinforcement Learning
 # ============================================================
-gym==0.26.2  # OpenAI Gym for RL environment
-stable-baselines3==2.2.1  # PPO agent for maneuver optimization
+gymnasium>=1.0.0 # OpenAI Gym for RL environment
+stable-baselines3>=2.8.0a4 # PPO agent for maneuver optimization
 tensorboard==2.15.1  # Training visualization
 
 # ============================================================

@@ -702,8 +702,8 @@ graphql_schema = strawberry.Schema(
 # Create GraphQL router with GraphiQL playground
 graphql_app = GraphQLRouter(
     graphql_schema,
-    graphiql=True  # Enable GraphQL Playground
-)
+    # Enable GraphQL Playground
+)   
 
 # Mount GraphQL endpoint
 app.include_router(graphql_app, prefix="/graphql", tags=["GraphQL API v2"])
@@ -718,3 +718,9 @@ if __name__ == "__main__":
     print("📊 GraphQL Playground: http://localhost:8000/graphql")
     print("📖 REST API Docs: http://localhost:8000/docs")
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+
+
+@app.get("/api/history/trends")
+async def get_trends_data(days: int = 7):
+    # This maps the frontend request to your existing history logic
+    return await get_conjunction_history(time_range_hours=days*24)

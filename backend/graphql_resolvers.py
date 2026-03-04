@@ -7,7 +7,7 @@ Implements query and mutation resolvers
 import strawberry
 from typing import List, Optional
 from datetime import datetime, timedelta
-from .graphql_schema import (
+from graphql_schema import (
     Satellite, Conjunction, Position, Velocity, TLE,
     SatelliteType, RiskLevel, ConjunctionStatus,
     ConjunctionStatistics, RiskLevelCount, RiskTrend,

@@ -23,11 +23,7 @@ schema = strawberry.Schema(
 # Create GraphQL router with WebSocket support
 graphql_app = GraphQLRouter(
     schema,
-    subscription_protocols=[
-        GRAPHQL_TRANSPORT_WS_PROTOCOL,  # graphql-ws (Apollo Client 3+)
-        GRAPHQL_WS_PROTOCOL              # subscriptions-transport-ws (Legacy)
-    ],
-    graphiql=True  # Enable GraphiQL playground
+    
 )
 
 
